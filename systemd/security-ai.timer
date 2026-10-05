@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Security AI Analyzer Every 2 Seconds
+
+[Timer]
+OnBootSec=2s
+OnUnitActiveSec=2s
+AccuracySec=500ms
+
+[Install]
+WantedBy=timers.target

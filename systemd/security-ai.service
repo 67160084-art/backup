@@ -1,0 +1,8 @@
+[Unit]
+Description=Security AI Analyzer
+
+[Service]
+Type=oneshot
+User=ubuntu
+ExecStart=/opt/security-ai/venv/bin/python /opt/security-ai/security_analyzer.py
+ExecStartPost=/bin/cp /opt/security-ai/data/analysis.json /var/www/security-dashboard/analysis.json

@@ -1,0 +1,131 @@
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name keroronetwork.duckdns.org;
+
+    client_max_body_size 64M;
+
+    # =====================================================
+    # Security Logging
+    # =====================================================
+
+    access_log /var/log/nginx/security_access.log
+               security_json
+               if=$security_loggable;
+
+    error_log /var/log/nginx/security_error.log warn;
+
+    # =====================================================
+    # WordPress Login
+    # =====================================================
+    #
+    # Strict protection against repeated login requests.
+    #
+
+    location = /wp-login.php {
+
+        limit_req zone=wp_login_limit burst=10 nodelay;
+        limit_req_status 429;
+
+        proxy_pass http://127.0.0.1:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # =====================================================
+    # WordPress Admin
+    # =====================================================
+    #
+    # Higher capacity because WordPress Admin uses
+    # admin-ajax.php and other dynamic endpoints.
+    #
+
+    location ^~ /wp-admin/ {
+
+        limit_req zone=admin_limit burst=40 nodelay;
+        limit_req_status 429;
+
+        proxy_pass http://127.0.0.1:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # =====================================================
+    # Security Dashboard
+    # =====================================================
+    #
+    # Protected by:
+    # - Basic Authentication
+    # - Rate Limit
+    # - Security Logging
+    #
+    # analysis.json is excluded from rate accounting
+    # and Security Log by the maps above.
+    #
+
+    location /security-dashboard/ {
+
+        alias /var/www/security-dashboard/;
+        index index.html;
+
+        auth_basic "Security Dashboard";
+        auth_basic_user_file /etc/nginx/.security-dashboard;
+
+        limit_req zone=dashboard_limit burst=15 nodelay;
+        limit_req_status 429;
+
+        try_files $uri $uri/ /security-dashboard/index.html;
+    }
+
+    # =====================================================
+    # Public WordPress Website
+    # =====================================================
+
+    location / {
+
+        limit_req zone=web_limit burst=30 nodelay;
+        limit_req_status 429;
+
+        proxy_pass http://127.0.0.1:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # =====================================================
+    # TLS
+    # =====================================================
+
+    ssl_certificate
+        /etc/letsencrypt/live/keroronetwork.duckdns.org/fullchain.pem;
+
+    ssl_certificate_key
+        /etc/letsencrypt/live/keroronetwork.duckdns.org/privkey.pem;
+
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+
+# =========================================================
+# HTTP -> HTTPS
+# =========================================================
+
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name keroronetwork.duckdns.org;
+
+    return 301 https://$host$request_uri;
+}

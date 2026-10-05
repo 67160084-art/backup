@@ -1,0 +1,32 @@
+# Secrets / credentials
+.env
+*.env
+*.pem
+*.key
+*.crt
+*.p12
+
+# Database / backups
+*.sql
+*.sql.gz
+*.tar
+*.tar.gz
+*.zip
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Runtime / generated data
+data/
+*.log
+
+# WordPress
+wordpress/
+wp-content/uploads/
+
+# OS / editor
+.DS_Store
+Thumbs.db
